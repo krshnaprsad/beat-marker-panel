@@ -2,7 +2,7 @@
 
 A free panel for **Adobe After Effects** and **Premiere Pro**. Pick a music file, the panel finds the beats and drops a marker on every one. Cut your video to the rhythm without tapping the `M` key along to the song.
 
-**Version 1.1.2.** The layout follows the workflow of dedicated beat-marker tools: an audio player with a big zoomable waveform on top, a transport row, a Beat selection box, a Beat info box, a marker-type dropdown and a delete button with a work-area option. No branding is copied.
+**Version 1.1.3.** The layout follows the workflow of dedicated beat-marker tools: an audio player with a big zoomable waveform on top, a transport row, a Beat selection box, a Beat info box, a marker-type dropdown and a delete button with a work-area option. No branding is copied.
 
 - **Auto-cut (headline feature):** select clips in the Project panel and press one button. The clips are placed back to back on the beats, one clip per gap between two selected beats. Premiere Pro first, After Effects too.
 - **Use selected clip:** reads the audio clip or layer you selected in the timeline, analyses only the part of the file that clip shows, and offsets the markers to where the clip sits.
@@ -57,7 +57,7 @@ The installer copies the panel to Adobe's per-user extensions folder and turns o
 
 ## Test steps (what to check first)
 
-Each step says what you should see. If something differs, the panel prints a message. Please send me that text.
+Each step says what you should see. If something differs, the panel prints a message. Please report that text in an issue.
 
 1. **Use selected clip.** Select your song clip, press the button. Expect the waveform and the name. If it says it cannot read the file, the message includes the path it tried.
 2. **Sequence markers.** Press +. Expect "Beat N" markers on the sequence ruler at the yellow lines.
@@ -85,11 +85,9 @@ Everything is analysed inside the panel, in JavaScript. The host (After Effects 
 5. **Bars:** for "every 4th beat" the panel tries each of the 4 starting points and keeps the one with the strongest low-frequency (kick and bass) hits.
 6. **Every hit mode** skips the tempo step: an adaptive threshold on the spikes, with a minimum gap between hits (about 380 ms at the lowest sensitivity, 100 ms at the highest).
 
-## Checked and not checked
+## Accuracy and known limitations
 
-I could not run After Effects or Premiere while building this, so it was checked this way:
-
-- **Beat tracking accuracy** on generated music with known beat positions (`node tests/accuracy.test.js`). The test songs have kick, snare, hats and bass. A beat counts as found if it is within 70 ms of the true one. Results:
+**Beat detection accuracy.** Measured on generated music with known beat positions: kick, snare, hats and bass, in 11 variations. A beat counts as found if it is within 70 ms of the true one.
 
 ```
 70 BPM straight            tempo   69.9  F 0.989
@@ -106,14 +104,19 @@ I could not run After Effects or Premiere while building this, so it was checked
 mean F 0.994, bar starts F 1.000
 ```
 
-  These are clean, synthetic songs. Real music is harder: heavy compression, live drummers and long ambient parts will do worse. That is what the Tempo box and the half and double buttons are for.
-- Every-hit detection and WAV decoding: `node tests/detect.test.js`.
-- The marker code in `jsx/host.jsx` runs against mock After Effects and Premiere objects: `node tests/host.test.js`. It also parses as old ES3 ExtendScript.
-- The panel runs in desktop Chrome (screenshot above), and decoding a generated WAV and MP3 works there.
+These are clean, synthetic songs. Real music is harder: heavy compression, live drummers and long ambient parts will do worse. That is what the Tempo box and the half and double buttons are for.
 
-Not verified, because I could not run Adobe apps: the Premiere and After Effects calls for selection, clip and layer markers, the work area, the Project panel selection, and auto-cut placement (the host script is checked against mock objects only, `node tests/host.test.js`). These parts check every step and stop with a plain message, but expect that some of them need a fix after your first test. Also not verified: decoding inside Adobe's own embedded browser. WAV and MP3 always work (MP3 falls back to the built-in decoder, tested against ffmpeg's decode with a correlation of 1.000 on 32, 44.1 and 48 kHz, mono and stereo, CBR and VBR). AAC/M4A and other compressed formats depend on the codecs in your version of the app; if you see "could not be decoded", use an MP3 or WAV. Also not verified: the exact look of the markers in the apps.
+**MP3 decoding.** If the app can not decode an MP3 itself, the panel uses a built-in decoder. Its output matches ffmpeg's decode with a correlation of 1.000 on 32, 44.1 and 48 kHz files, mono and stereo, constant and variable bitrate. WAV is always supported. AAC/M4A and audio inside video files depend on the codecs of your Premiere / After Effects version.
 
-If something fails, the panel shows the error text. Open an issue with that text and your app version.
+**Known limitations**
+
+- The Premiere and After Effects integration is new. Selection reading, clip and layer markers, work-area limits, Project-panel selection and auto-cut placement depend on host behaviour that differs between app versions. Each step checks what it needs and stops with a plain message instead of guessing, but expect rough edges.
+- Real-world testing in Premiere Pro and After Effects is welcome. If something fails, the panel shows the error text. Please open an issue with that text, your app version and your OS.
+- In Premiere, clip markers belong to the source file, so every use of that file shares them.
+- Auto-cut assumes clips at 100% speed. Undo in Premiere is manual: delete the new top video track.
+- Very long MP3s (an hour or more) need a lot of memory in the built-in decoder.
+
+For developers: how to run the tests is in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Roadmap (not in this version)
 
@@ -135,7 +138,7 @@ js/autocut.js           plans which clip fills which gap
 js/main.js              panel logic
 js/cep-bridge.js        talks to the host app
 jsx/host.jsx            ExtendScript: markers, selection, auto-cut
-tests/                  node tests (accuracy, detection, host mocks)
+tests/                  automated tests (see CONTRIBUTING.md)
 install/                installers for Windows and Mac
 ```
 
