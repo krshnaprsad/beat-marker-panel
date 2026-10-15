@@ -25,24 +25,26 @@
   }
 
   // samples: Float32Array mono. Returns { flux: Float32Array, hop: seconds per frame, duration }
+  function lowBinFor(sampleRate, n) { return Math.max(3, Math.floor(180 / (sampleRate / n))); }
   function computeFlux(samples, sampleRate) {
     var n = FFT_SIZE, fft = makeFFT(n), re = new Float32Array(n), im = new Float32Array(n), win = new Float32Array(n), i, f;
     for (i = 0; i < n; i++) win[i] = 0.5 - 0.5 * Math.cos(2 * Math.PI * i / (n - 1));
     var maxBin = Math.min(n / 2, Math.floor(10000 / (sampleRate / n))), minBin = 2;
-    var frames = Math.max(0, Math.floor((samples.length - n) / HOP) + 1), flux = new Float32Array(frames), low = new Float32Array(frames), prev = new Float32Array(maxBin);
-    var lowBin = Math.max(3, Math.floor(180 / (sampleRate / n)));
+    var frames = Math.max(0, Math.floor((samples.length - n) / HOP) + 1), flux = new Float32Array(frames), low = new Float32Array(frames), mid = new Float32Array(frames), high = new Float32Array(frames), prev = new Float32Array(maxBin);
+    var midBin = Math.max(lowBinFor(sampleRate, n) + 1, Math.floor(2500 / (sampleRate / n)));
+    var lowBin = lowBinFor(sampleRate, n);
     for (f = 0; f < frames; f++) {
       var off = f * HOP;
       for (i = 0; i < n; i++) { re[i] = samples[off + i] * win[i]; im[i] = 0; }
       fft(re, im);
-      var sum = 0, lsum = 0;
+      var sum = 0, lsum = 0, msum = 0, hsum = 0;
       for (i = minBin; i < maxBin; i++) {
         var mag = Math.log(1 + 40 * Math.sqrt(re[i] * re[i] + im[i] * im[i]) / n * 2);
-        var d = mag - prev[i]; if (d > 0) { sum += d; if (i < lowBin) lsum += d; } prev[i] = mag;
+        var d = mag - prev[i]; if (d > 0) { sum += d; if (i < lowBin) lsum += d; else if (i < midBin) msum += d; else hsum += d; } prev[i] = mag;
       }
-      flux[f] = f === 0 ? 0 : sum; low[f] = f === 0 ? 0 : lsum;
+      flux[f] = f === 0 ? 0 : sum; low[f] = f === 0 ? 0 : lsum; mid[f] = f === 0 ? 0 : msum / Math.sqrt(midBin - lowBin); high[f] = f === 0 ? 0 : hsum / Math.sqrt(Math.max(1, maxBin - midBin));
     }
-    return { flux: flux, low: low, hop: HOP / sampleRate, duration: samples.length / sampleRate };
+    return { flux: flux, low: low, mid: mid, high: high, hop: HOP / sampleRate, duration: samples.length / sampleRate };
   }
 
   // sensitivity 0..1 (low = only strong beats, high = dense). everyNth: keep every Nth beat.
@@ -94,40 +96,72 @@
     return out;
   }
 
-  // Tempo from the autocorrelation of the onset envelope, with harmonic support (T, 2T, T/2) and a soft prior around 120 BPM.
-  // Returns { bpm, confidence 0..1 }. bpm is 0 when the audio has no usable rhythm.
+  // Onset curve for the beat grid: the three bands are normalised separately and then mixed, so rows of quiet hi-hats
+  // do not outweigh the kick and snare that define where the beat is.
+  function beatEnv(fx) {
+    if (fx._be) return fx._be;
+    var hop = fx.hop, base, out, i;
+    if (!fx.mid) { fx._be = envelope(fx); return fx._be; }
+    var l = envelope({ flux: fx.low, hop: hop }), m = envelope({ flux: fx.mid, hop: hop }), h = envelope({ flux: fx.high, hop: hop });
+    out = new Float32Array(l.length);
+    for (i = 0; i < out.length; i++) out[i] = 1.0 * l[i] + 0.9 * m[i] + 0.35 * h[i];
+    var pe = new Float32Array(l.length); for (i = 0; i < pe.length; i++) pe[i] = 1.0 * l[i] + 0.6 * m[i] + 0.1 * h[i]; fx._pe = pe;
+    fx._be = out; fx._bands = [[l, 1.0], [m, 0.9], [h, 0.35]]; return out;
+  }
+  // 3-tap smoothing, so a hit that falls between two frames still lines up with its neighbours at the next beat
+  function smooth3(a) { var o = new Float32Array(a.length), i; for (i = 0; i < a.length; i++) o[i] = 0.25 * (a[i > 0 ? i - 1 : 0]) + 0.5 * a[i] + 0.25 * (a[i < a.length - 1 ? i + 1 : i]); return o; }
+  function percentile(arr, p) { var c = Array.prototype.slice.call(arr).sort(function (a, b) { return a - b; }); return c.length ? c[Math.min(c.length - 1, Math.floor(p * c.length))] : 0; }
+  // Beat strength in raw (not normalised) flux: tells real hits from a pad or silence, which normalisation would blow up.
+  function strongEnough(fx) { var thr = 0.18 * percentile(fx.flux, 0.9); return function (frame) { var k, v = 0; for (k = Math.max(0, frame - 2); k <= Math.min(fx.flux.length - 1, frame + 2); k++) if (fx.flux[k] > v) v = fx.flux[k]; return v >= thr; }; }
+
+  // Comb score: how well do onsets sit on a grid with period L (frames)? Best phase wins. Returns { score, phase }.
+  function comb(o, m, L, mean) {
+    var n = o.length, best = -1e9, bestPh = 0, ph, k, step = Math.max(1, Math.floor(L / 24));
+    for (ph = 0; ph < L; ph += step) {
+      var sum = 0, cnt = 0;
+      for (var t = ph; t < n - 1; t += L) { sum += m[Math.round(t)]; cnt++; }
+      if (cnt > 2) { var v = sum / cnt - mean; if (v > best) { best = v; bestPh = ph; } }
+    }
+    return { score: best, phase: bestPh };
+  }
+
+  // Tempo: candidates from the autocorrelation of the onset curve plus their octaves, each judged by how well a beat grid
+  // of that tempo sits on the onsets (best phase), with a soft preference for tempos in the 90-190 range. Returns { bpm, confidence 0..1 }.
   function estimateTempo(fx) {
-    var o = envelope(fx), n = o.length, hop = fx.hop, i, lag;
+    var o = beatEnv(fx), n = o.length, hop = fx.hop, i, lag;
     var minLag = Math.floor(60 / 220 / hop), maxLag = Math.ceil(60 / 40 / hop);
     if (n < maxLag * 2.5) return { bpm: 0, confidence: 0 };
     var mean = 0; for (i = 0; i < n; i++) mean += o[i]; mean /= n;
-    var ac = new Float64Array(maxLag * 2 + 2);
-    for (lag = minLag; lag <= maxLag * 2; lag++) { var s = 0; for (i = 0; i + lag < n; i++) s += (o[i] - mean) * (o[i + lag] - mean); ac[lag] = s / (n - lag); }
-    var zero = 0; for (i = 0; i < n; i++) zero += (o[i] - mean) * (o[i] - mean); zero /= n;
+    var ac = new Float64Array(maxLag * 2 + 2), zero = 0;
+    for (i = 0; i < n; i++) zero += (o[i] - mean) * (o[i] - mean); zero /= n;
     if (zero < 1e-6) return { bpm: 0, confidence: 0 };
-    var best = -1, bestLag = 0, second = 0, sc = new Float64Array(maxLag + 2);
-    for (lag = minLag; lag <= maxLag; lag++) {
-      var bpm = 60 / (lag * hop), prior = Math.exp(-0.5 * Math.pow(Math.log(bpm / 118) / Math.LN2 / 0.85, 2));
-      var v = ac[lag] + 0.5 * ac[lag * 2] + (lag % 2 === 0 && lag / 2 >= minLag ? 0.25 * ac[lag / 2] : 0);
-      sc[lag] = v * (0.35 + 0.65 * prior);
-      if (sc[lag] > best) { best = sc[lag]; bestLag = lag; }
-    }
-    if (best <= 0) return { bpm: 0, confidence: 0 };
-    // parabolic refinement
-    var l = bestLag, y0 = sc[l - 1] || 0, y1 = sc[l], y2 = sc[l + 1] || 0, den = y0 - 2 * y1 + y2, d = den !== 0 ? 0.5 * (y0 - y2) / den : 0;
-    if (Math.abs(d) > 1) d = 0;
-    var refined = l + d;
-    // very slow readings are usually half the felt tempo: go to double time when the half lag is nearly as strong
-    var h = Math.round(l / 2);
-    if (60 / (l * hop) < 95 && h >= minLag) { var hv = 0, k; for (k = h - 1; k <= h + 1; k++) hv = Math.max(hv, ac[k]); if (hv >= 0.6 * ac[l] && 60 / (h * hop) <= 190) { refined = h + 0; var m2 = h; var bb = ac[h]; for (k = h - 1; k <= h + 1; k++) if (ac[k] > bb) { bb = ac[k]; m2 = k; } refined = m2; l = m2; } }
-    // octave check: if half the lag (double tempo) is almost as strong and lands in 100..180, prefer the faster one only when clearly better
-    return { bpm: Math.round(60 / (refined * hop) * 10) / 10, confidence: Math.max(0, Math.min(1, ac[l] / zero * 1.5)) };
+    for (lag = minLag; lag <= Math.min(maxLag * 2, n - 10); lag++) { var s = 0; for (i = 0; i + lag < n; i++) s += (o[i] - mean) * (o[i + lag] - mean); ac[lag] = s / (n - lag); }
+    // candidate lags: local maxima of the harmonic-summed autocorrelation, plus half and double
+    var cand = {}, sc = new Float64Array(maxLag + 2), acMax = 1e-9;
+    for (lag = minLag; lag <= maxLag; lag++) { sc[lag] = ac[lag] + 0.5 * ac[lag * 2] + (lag % 2 === 0 && lag / 2 >= minLag ? 0.25 * ac[lag / 2] : 0); if (sc[lag] > acMax) acMax = sc[lag]; }
+    var peaks = []; for (lag = minLag + 1; lag < maxLag; lag++) if (sc[lag] > sc[lag - 1] && sc[lag] >= sc[lag + 1] && sc[lag] > 0.1 * acMax) peaks.push(lag);
+    peaks.sort(function (a, b) { return sc[b] - sc[a]; }); peaks = peaks.slice(0, 6);
+    peaks.forEach(function (p) { [p, p * 2, p / 2, p * 1.5, p * 2 / 3].forEach(function (L) { L = Math.round(L); if (L >= minLag && L <= maxLag) cand[L] = 1; }); });
+    // max over +-1 frame, so a hit that lands between two frames still counts
+    var m = new Float32Array(n); for (i = 0; i < n; i++) m[i] = Math.max(o[i], i > 0 ? o[i - 1] : 0, i < n - 1 ? o[i + 1] : 0);
+    var bestL = 0, bestV = -1e9;
+    Object.keys(cand).forEach(function (key) {
+      var L = +key, bpm = 60 / (L * hop), prior = Math.exp(-0.5 * Math.pow(Math.log(bpm / 135) / Math.LN2 / 0.6, 2));
+      var a = Math.max(0, sc[L] || ac[L] || 0) / acMax;
+      var v = a * (0.35 + 0.65 * prior);
+      if (v > bestV) { bestV = v; bestL = L; }
+    });
+    if (!bestL || bestV <= 0) return { bpm: 0, confidence: 0 };
+    // refine: search +-3% around the winner for the grid period that fits the onsets best
+    var refL = bestL, refV = -1e9, f;
+    for (f = 0.97; f <= 1.0301; f += 0.001) { var Lf = bestL * f, cs = comb(o, m, Lf, mean).score - Math.abs(f - 1) * 0.02; if (cs > refV) { refV = cs; refL = Lf; } }
+    return { bpm: Math.round(60 / (refL * hop) * 10) / 10, confidence: Math.max(0, Math.min(1, (ac[bestL] || 0) / zero * 1.5)) };
   }
 
   // Dynamic-programming beat tracker (Ellis 2007): beats should land on onsets and stay about one period apart.
   // Returns beat times in seconds.
   function trackBeats(fx, bpm, tightness) {
-    var o = envelope(fx), n = o.length, hop = fx.hop, T = 60 / bpm / hop, i, tau, lam = tightness || 90;
+    var o = (beatEnv(fx), fx._pe || beatEnv(fx)), n = o.length, hop = fx.hop, T = 60 / bpm / hop, i, tau, lam = tightness || 90, real = strongEnough(fx);
     if (!(T > 2) || n < T * 3) return [];
     var C = new Float64Array(n), prev = new Int32Array(n), lo = Math.max(1, Math.round(T / 2)), hi = Math.round(T * 2);
     for (i = 0; i < n; i++) {
@@ -145,16 +179,36 @@
     idx.reverse();
     // extend backwards to the start of the audio with the same period, so the grid covers the intro too
     var out = [], first = idx[0];
-    for (i = first - T; i >= 0; i -= T) { var ci = Math.round(i), ev = 0, kk; for (kk = Math.max(0, ci - 2); kk <= Math.min(n - 1, ci + 2); kk++) ev = Math.max(ev, o[kk]); if (ev < 1.0) break; out.unshift(i); }
+    for (i = first - T; i >= 0; i -= T) { var ci = Math.round(i), ev = 0, kk; for (kk = Math.max(0, ci - 2); kk <= Math.min(n - 1, ci + 2); kk++) ev = Math.max(ev, o[kk]); if (!real(ci)) break; out.unshift(i); }
     for (i = 0; i < idx.length; i++) out.push(idx[i]);
     // snap each beat to the strongest envelope frame within +-2 frames, then convert to seconds
     var times = [], shift = (FFT_SIZE / 4) * (hop / HOP);
     for (i = 0; i < out.length; i++) {
       var c = Math.round(out[i]), bi = c, bv = -1, k;
       for (k = Math.max(0, c - 2); k <= Math.min(n - 1, c + 2); k++) if (o[k] > bv) { bv = o[k]; bi = k; }
-      times.push(bi * hop + shift);
+      if (real(bi)) times.push(bi * hop + shift);   // no beats where there is only a pad or silence
     }
     return times;
+  }
+
+  // Move each time onto the actual attack in the audio: the point within +-win seconds where short-term energy rises the most.
+  // The spectral-flux frames used for detection are 23 ms long, so their peaks sit a little before or after the real attack.
+  function refineOnsets(times, x, sr, win) {
+    win = win || 0.045; var w = Math.max(8, Math.round(0.003 * sr)), out = [], k, j;
+    for (k = 0; k < times.length; k++) {
+      var c = Math.round(times[k] * sr), a = Math.max(w, c - Math.round(win * sr)), b = Math.min(x.length - w - 1, c + Math.round(win * sr));
+      if (b - a < 4 * w) { out.push(times[k]); continue; }
+      var len = b - a + 2 * w + 1, pre = new Float64Array(len + 1);
+      for (j = 0; j < len; j++) { var v = x[a - w + j]; pre[j + 1] = pre[j] + v * v; }
+      var best = -1, bestJ = c - a, sum = 0, cnt = 0;
+      for (j = w; j <= b - a + w; j++) {
+        var right = pre[j + w] - pre[j], left = pre[j] - pre[j - w], rise = right - left; sum += right; cnt++;
+        if (rise > best) { best = rise; bestJ = j - w; }
+      }
+      var meanE = sum / Math.max(1, cnt);
+      out.push(best > 1.5 * meanE ? (a + bestJ) / sr : times[k]);
+    }
+    return out;
   }
 
   // Which of the first m beats starts a group of m (bar start)? The one where the summed envelope is strongest.
@@ -190,6 +244,6 @@
     return out;
   }
 
-  var api = { barStart: barStart, estimateTempo: estimateTempo, trackBeats: trackBeats, everyNth: everyNth, envelope: envelope, computeFlux: computeFlux, pickBeats: pickBeats, estimateBPM: estimateBPM, waveformPeaks: waveformPeaks, HOP: HOP, FFT_SIZE: FFT_SIZE };
+  var api = { barStart: barStart, estimateTempo: estimateTempo, beatEnv: beatEnv, refineOnsets: refineOnsets, trackBeats: trackBeats, everyNth: everyNth, envelope: envelope, computeFlux: computeFlux, pickBeats: pickBeats, estimateBPM: estimateBPM, waveformPeaks: waveformPeaks, HOP: HOP, FFT_SIZE: FFT_SIZE };
   if (typeof module !== "undefined" && module.exports) module.exports = api; else root.Detect = api;
 })(typeof window !== "undefined" ? window : this);
