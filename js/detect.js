@@ -215,6 +215,40 @@
     return times;
   }
 
+  // Kick / bass-hit mode: only low-frequency onsets, not on a grid. Each mark is a separate hit, so a double hit 0.24 s apart gets two marks.
+  // sensitivity 0..1: lower keeps only the strongest hits, higher also keeps softer bass notes.
+  function pickKicks(fx, sensitivity) {
+    var f = fx.low, n = f.length, hop = fx.hop, i, k;
+    if (!f || n < 8) return [];
+    var s = Math.max(0, Math.min(1, sensitivity)), T = 2.2 - 1.8 * s, wd = Math.max(4, Math.round(1.5 / hop)), minGap = 0.15 / hop;
+    var cs = new Float64Array(n + 1), cs2 = new Float64Array(n + 1), z = new Float32Array(n);
+    for (i = 0; i < n; i++) { cs[i + 1] = cs[i] + f[i]; cs2[i + 1] = cs2[i] + f[i] * f[i]; }
+    for (i = 0; i < n; i++) {
+      var a = Math.max(0, i - wd), b = Math.min(n, i + wd + 1), c = b - a, m = (cs[b] - cs[a]) / c, v = (cs2[b] - cs2[a]) / c - m * m;
+      z[i] = (f[i] - m) / (Math.sqrt(Math.max(v, 0)) + 1e-3 + 0.05 * m);
+    }
+    var cand = [];
+    for (i = 1; i < n - 1; i++) {
+      if (z[i] < T) continue;
+      var isMax = true; for (k = Math.max(0, i - 2); k <= Math.min(n - 1, i + 2); k++) if (z[k] > z[i]) { isMax = false; break; }
+      if (isMax) cand.push(i);
+    }
+    cand.sort(function (p, q) { return z[q] - z[p]; });
+    var taken = [];
+    for (i = 0; i < cand.length; i++) { var ok = true; for (k = 0; k < taken.length; k++) if (Math.abs(taken[k] - cand[i]) < minGap) { ok = false; break; } if (ok) taken.push(cand[i]); }
+    taken.sort(function (p, q) { return p - q; });
+    var st = taken.map(function (t) { return Math.max(f[t - 1] || 0, f[t], f[t + 1] || 0); }), sorted = st.slice().sort(function (p, q) { return p - q; }), med = sorted.length ? sorted[sorted.length >> 1] : 0;
+    var frac = 1.5 - 1.1 * s, out = [], shift = (FFT_SIZE / 4) * (hop / HOP);
+    for (i = 0; i < taken.length; i++) if (st[i] >= frac * med) out.push(taken[i] * hop + shift);
+    return out;
+  }
+  // Two-pole low-pass (about fc Hz): used to place kick marks on the low-frequency attack.
+  function lowpass(x, sr, fc) {
+    var a = 1 - Math.exp(-2 * Math.PI * fc / sr), o = new Float32Array(x.length), y1 = 0, y2 = 0, i;
+    for (i = 0; i < x.length; i++) { y1 += a * (x[i] - y1); y2 += a * (y1 - y2); o[i] = y2; }
+    return o;
+  }
+
   // Move each time onto the actual attack in the audio: the point within +-win seconds where short-term energy rises the most.
   // The spectral-flux frames used for detection are 23 ms long, so their peaks sit a little before or after the real attack.
   function refineOnsets(times, x, sr, win) {
@@ -268,6 +302,6 @@
     return out;
   }
 
-  var api = { barStart: barStart, estimateTempo: estimateTempo, beatEnv: beatEnv, refineOnsets: refineOnsets, trackBeats: trackBeats, everyNth: everyNth, envelope: envelope, computeFlux: computeFlux, pickBeats: pickBeats, estimateBPM: estimateBPM, waveformPeaks: waveformPeaks, HOP: HOP, FFT_SIZE: FFT_SIZE };
+  var api = { barStart: barStart, estimateTempo: estimateTempo, beatEnv: beatEnv, refineOnsets: refineOnsets, pickKicks: pickKicks, lowpass: lowpass, trackBeats: trackBeats, everyNth: everyNth, envelope: envelope, computeFlux: computeFlux, pickBeats: pickBeats, estimateBPM: estimateBPM, waveformPeaks: waveformPeaks, HOP: HOP, FFT_SIZE: FFT_SIZE };
   if (typeof module !== "undefined" && module.exports) module.exports = api; else root.Detect = api;
 })(typeof window !== "undefined" ? window : this);
