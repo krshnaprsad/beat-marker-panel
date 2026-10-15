@@ -2,7 +2,7 @@
 
 A free panel for **Adobe After Effects** and **Premiere Pro**. Pick a music file, the panel finds the beats and drops a marker on every one. Cut your video to the rhythm without tapping the `M` key along to the song.
 
-**Version 1.1.6.** The layout follows the workflow of dedicated beat-marker tools: an audio player with a big zoomable waveform on top, a transport row, a Beat selection box, a Beat info box, a marker-type dropdown and a delete button with a work-area option. No branding is copied.
+**Version 1.1.7.** The layout follows the workflow of dedicated beat-marker tools: an audio player with a big zoomable waveform on top, a transport row, a Beat selection box, a Beat info box, a marker-type dropdown and a delete button with a work-area option. No branding is copied.
 
 - **Auto-cut (headline feature):** select clips in the Project panel and press one button. The clips are placed back to back on the beats, one clip per gap between two selected beats. Premiere Pro first, After Effects too.
 - **Use selected clip:** reads the audio clip or layer you selected in the timeline, analyses only the part of the file that clip shows, and offsets the markers to where the clip sits.
