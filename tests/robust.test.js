@@ -15,7 +15,7 @@ function make(bpm, dur, introSec) {
 }
 const m = make(120, 30, 4), fx = D.computeFlux(m.x, SR), tp = D.estimateTempo(fx);
 assert.ok([1, 2, 0.5].some(f => Math.abs(tp.bpm - 120 * f) / (120 * f) < 0.04), "tempo " + tp.bpm);
-const bt = D.refineOnsets(D.trackBeats(fx, tp.bpm), m.x, SR, 0.045);
+const bt = D.refineOnsets(D.trackBeats(fx, tp.bpm), m.x, SR, 0.025);
 const early = bt.filter(t => t < 3.5).length;
 assert.ok(early <= 1, "beats inside the pad intro: " + early);
 const dens = bt.length / 30; assert.ok(dens < 4.5, "density " + dens);
