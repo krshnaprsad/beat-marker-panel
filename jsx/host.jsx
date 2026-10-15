@@ -326,4 +326,4 @@ function bmCut(plan, optStr) {
     if (started) { try { app.endUndoGroup(); } catch (e6) {} }
     return bmErr(e5.toString() + " (line " + e5.line + ")");
   }
-    }
+}
