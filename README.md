@@ -2,13 +2,13 @@
 
 A free panel for **Adobe After Effects** and **Premiere Pro**. Pick a music file, the panel finds the beats and drops a marker on every one. Cut your video to the rhythm without tapping the `M` key along to the song.
 
-**Version 1.1.9.** The layout follows the workflow of dedicated beat-marker tools: an audio player with a big zoomable waveform on top, a transport row, a Beat selection box, a Beat info box, a marker-type dropdown and a delete button with a work-area option. No branding is copied.
+**Version 1.1.10.** The layout follows the workflow of dedicated beat-marker tools: an audio player with a big zoomable waveform on top, a transport row, a Beat selection box, a Beat info box, a marker-type dropdown and a delete button with a work-area option. No branding is copied.
 
 - **Auto-cut (headline feature):** select clips in the Project panel and press one button. The clips are placed back to back on the beats, one clip per gap between two selected beats. Premiere Pro first, After Effects too.
 - **Use selected clip:** reads the audio clip or layer you selected in the timeline, analyses only the part of the file that clip shows, and offsets the markers to where the clip sits.
 - **Clip / Layer markers** (on the clip in Premiere, on the layer in After Effects) or **Sequence / Comp markers**.
 - **Delete** removes only this panel's "Beat N" markers. Shift-click (or tick "Delete: work area only") to limit it to the work area.
-- **Kicks mode**: marks only the kick and bass hits, wherever they fall (not on a grid), so syncopated patterns and double hits get a mark each. Sensitivity sets how soft a bass note still counts. On one hat-heavy, syncopated test track it found 23 of 24 hand-checked kicks with 92% of marks on a kick; other music will vary.
+- **Kicks mode**: marks only the kick and bass hits, wherever they fall (not on a grid), so syncopated patterns and double hits get a mark each. Sensitivity sets how soft a bass note still counts. On one hat-heavy, syncopated test track it found 45 of 50 measured kicks with 90% of marks on a kick (within 40 ms); other music will vary.
 - **Shift grid** (Beats mode): if the detected beats sit on a different pulse than the one you hear, move the whole grid by half or a quarter beat, or by a few milliseconds, and watch it snap onto the waveform.
 - **Beats mode** (tempo plus a dynamic-programming beat tracker) and **Every hit mode** (with Sensitivity).
 - **Beat selection:** subdivide beats (OFF, 2, 3, 4), "select exactly N beats of every M beats", starting at beat S, picked first / evenly / randomly, **Find bar start**, and limit to a range (drag on the waveform, or use the work area).
