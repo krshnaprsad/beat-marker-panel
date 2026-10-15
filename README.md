@@ -2,7 +2,7 @@
 
 A free panel for **Adobe After Effects** and **Premiere Pro**. Pick a music file, the panel finds the beats and drops a marker on every one. Cut your video to the rhythm without tapping the `M` key along to the song.
 
-**Version 1.1.5.** The layout follows the workflow of dedicated beat-marker tools: an audio player with a big zoomable waveform on top, a transport row, a Beat selection box, a Beat info box, a marker-type dropdown and a delete button with a work-area option. No branding is copied.
+**Version 1.1.6.** The layout follows the workflow of dedicated beat-marker tools: an audio player with a big zoomable waveform on top, a transport row, a Beat selection box, a Beat info box, a marker-type dropdown and a delete button with a work-area option. No branding is copied.
 
 - **Auto-cut (headline feature):** select clips in the Project panel and press one button. The clips are placed back to back on the beats, one clip per gap between two selected beats. Premiere Pro first, After Effects too.
 - **Use selected clip:** reads the audio clip or layer you selected in the timeline, analyses only the part of the file that clip shows, and offsets the markers to where the clip sits.
@@ -106,7 +106,7 @@ Everything is analysed inside the panel, in JavaScript. The host (After Effects 
 
 **Harder synthetic patterns** (loud 16th hi-hats, rolls, pad intro). Beats now snap to the audio attack, typically within a few milliseconds. The tempo is right on a trap pattern at 140 and a clap-on-2-and-4 pattern at 100. It is still wrong on a four-on-the-floor 124 with hats louder than the kick (reads 99) and on a boom-bap 90 with busy hats (reads 120). A beatless pad intro is left unmarked.
 
-**Real music.** Eight public-domain tracks, compared with the librosa beat tracker (which is a reference, not ground truth). The tempo agrees with librosa on 6 of 8, is double on one and half on one. After snapping, about 87% of beats sit on a detected onset, with a median offset under 20 ms. This is a small set and no replacement for listening to your own songs.
+**Real music.** Eight public-domain tracks, compared with the librosa beat tracker (which is a reference, not ground truth). The tempo agrees with librosa on 6 of 8, is double on one and half on one. After snapping, about 87% of beats sit on a detected onset, with a median offset under 20 ms. Three further tracks supplied by users were checked the same way. On a hat-heavy 122 BPM track with a 2.8 s beatless pad intro, the intro is left unmarked and 95% of marks sit within 45 ms of librosa's beats. On a 62 s 136 BPM track it is 93%. On a 10 s clip at 118 BPM with a syncopated groove the grid lands half a beat away from librosa's, so expect to use the Tempo box or edit beats on material like that. This is a small set and no replacement for listening to your own songs.
 
 These are clean, synthetic songs. Real music is harder: heavy compression, live drummers and long ambient parts will do worse. That is what the Tempo box and the half and double buttons are for.
 
