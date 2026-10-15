@@ -22,3 +22,17 @@ const dens = bt.length / 30; assert.ok(dens < 4.5, "density " + dens);
 let near = 0; bt.forEach(t => { if (m.truth.some(u => Math.abs(u - t) < 0.025)) near++; });
 assert.ok(near / bt.length > 0.8 || tp.bpm < 100, "on-attack rate " + (near / bt.length).toFixed(2));
 console.log("robust ok: tempo", tp.bpm, "beats", bt.length, "intro beats", early, "on-attack", (near / bt.length).toFixed(2));
+// Kicks mode: syncopated kicks (a double hit 0.24 s apart) among loud hats; every kick found, hats not marked.
+{
+  const r2 = rng(9), x = new Float32Array(20 * SR), kicks = [];
+  for (let i = 0; i < x.length; i++) x[i] = (r2() - 0.5) * 0.01;
+  const add = (t, f) => { const s0 = Math.round(t * SR); for (let i = 0; s0 + i < x.length && i < 0.25 * SR; i++) x[s0 + i] += f(i / SR); };
+  for (let bar = 0; bar < 9; bar++) { const b0 = 1 + bar * 2; [0, 0.5, 0.74, 1.5].forEach(o => kicks.push(b0 + o)); }
+  kicks.forEach(t => add(t, tt => 0.8 * Math.exp(-tt * 25) * Math.sin(2 * Math.PI * (50 * tt + 10 * (1 - Math.exp(-tt * 40))) * 3)));
+  for (let t = 1; t < 19; t += 0.12) { const rr = rng(Math.round(t * 1000)); add(t, tt => 0.12 * (rr() - 0.5) * 2 * Math.exp(-tt * 110)); }
+  const f2 = D.computeFlux(x, SR), kk = D.refineOnsets(D.pickKicks(f2, 0.7), D.lowpass(x, SR, 150), SR, 0.03);
+  const kin = kicks.filter(t => t < 19), got = kin.filter(t => kk.some(y => Math.abs(y - t) < 0.03)).length;
+  assert.ok(got >= 0.85 * kin.length, "kicks found " + got + "/" + kin.length);
+  assert.ok(kk.length <= kin.length * 1.3, "extra marks: " + kk.length + " for " + kin.length + " kicks");
+  console.log("kicks ok", got + "/" + kin.length, "marks", kk.length);
+}
