@@ -29,16 +29,27 @@
     for (c = 0; c < ch; c++) { var d = buf.getChannelData(c); for (i = 0; i < n; i++) out[i] += d[i] / ch; }
     return out;
   }
+  function looksMp3(arrayBuf, name) {
+    if (arrayBuf.byteLength < 4) return false; var u = new Uint8Array(arrayBuf, 0, 3);
+    return /\.mp3$/i.test(name) || (u[0] === 0x49 && u[1] === 0x44 && u[2] === 0x33) || (u[0] === 0xFF && (u[1] & 0xE0) === 0xE0);
+  }
   function decode(arrayBuf, name, cb) {
-    var c = audioCtx(), isWav = /\.wav$/i.test(name) || (arrayBuf.byteLength > 4 && String.fromCharCode.apply(null, new Uint8Array(arrayBuf, 0, 4)) === "RIFF");
+    var c = audioCtx(), isWav = /\.wav$/i.test(name) || (arrayBuf.byteLength > 4 && String.fromCharCode.apply(null, new Uint8Array(arrayBuf, 0, 4)) === "RIFF"), isMp3 = !isWav && looksMp3(arrayBuf, name);
     function viaWav(why) {
       try { var w = Wav.decodeWav(arrayBuf); cb(null, { samples: w.samples, sampleRate: w.sampleRate }); }
       catch (e) { cb(why ? "This file could not be decoded here (" + why + "). Convert it to a WAV file and try again." : e.message); }
     }
-    if (!c || !c.decodeAudioData) return isWav ? viaWav("") : cb("This host cannot decode audio. Use a WAV file.");
+    function viaMp3() {   // built-in pure JS decoder, used when the app's own audio engine can not read MP3
+      setStatus("Decoding MP3 with the built-in decoder (a few seconds)...");
+      setTimeout(function () {
+        try { var m = Mp3Dec.decodeMp3(arrayBuf); cb(null, { samples: m.samples, sampleRate: m.sampleRate }); }
+        catch (e) { cb("This MP3 could not be decoded (" + (e.message || e) + "). Try another copy of the file, or convert it to WAV."); }
+      }, 30);
+    }
+    if (!c || !c.decodeAudioData) return isWav ? viaWav("") : isMp3 ? viaMp3() : cb("This host cannot decode audio. Use a WAV or MP3 file.");
     var done = false;
     function ok(buf) { if (done) return; done = true; cb(null, { samples: toMono(buf), sampleRate: buf.sampleRate }); }
-    function fail() { if (done) return; done = true; if (isWav) viaWav(""); else viaWav("format not supported by this app's audio engine"); }
+    function fail() { if (done) return; done = true; if (isWav) viaWav(""); else if (isMp3) viaMp3(); else viaWav("format not supported by this app's audio engine"); }
     try { var p = c.decodeAudioData(arrayBuf.slice(0), ok, fail); if (p && p.then) p.then(ok, fail); } catch (e) { fail(e); }
   }
 
