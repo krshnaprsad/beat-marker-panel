@@ -157,19 +157,23 @@
     return times;
   }
 
-  // Keep every Nth beat. The starting beat is the one where the summed envelope is strongest, so "every 4th" lands on bar starts.
+  // Which of the first m beats starts a group of m (bar start)? The one where the summed envelope is strongest.
+  function barStart(times, fx, m) {
+    m = Math.max(1, Math.round(m || 4));
+    if (m === 1 || times.length < m) return 0;
+    var o = envelope(fx), lo = envelope({ flux: fx.low || fx.flux, hop: fx.hop }), k, j, best = -1, bestK = 0, hop = fx.hop, shift = (FFT_SIZE / 4) * (hop / HOP);
+    for (k = 0; k < m; k++) {
+      var sum = 0;
+      for (j = k; j < times.length; j += m) { var fi = Math.round((times[j] - shift) / hop); if (fi >= 0 && fi < o.length) sum += o[fi] + 1.5 * lo[fi]; }
+      if (sum > best) { best = sum; bestK = k; }
+    }
+    return bestK;
+  }
+  // Keep every Nth beat, starting at the bar start.
   function everyNth(times, fx, n) {
     n = Math.max(1, Math.round(n || 1));
     if (n === 1 || times.length < n) return times.slice();
-    var o = envelope(fx), k, j, best = -1, bestK = 0, hop = fx.hop, shift = (FFT_SIZE / 4) * (hop / HOP);
-    // low-frequency hits (kick, bass) mark bar starts; blend them with the overall envelope
-    var lo = envelope({ flux: fx.low || fx.flux, hop: hop });
-    for (k = 0; k < n; k++) {
-      var sum = 0;
-      for (j = k; j < times.length; j += n) { var fi = Math.round((times[j] - shift) / hop); if (fi >= 0 && fi < o.length) sum += o[fi] + 1.5 * lo[fi]; }
-      if (sum > best) { best = sum; bestK = k; }
-    }
-    var out = []; for (j = bestK; j < times.length; j += n) out.push(times[j]); return out;
+    var k = barStart(times, fx, n), out = [], j; for (j = k; j < times.length; j += n) out.push(times[j]); return out;
   }
 
   // Back-compat: just the BPM number
@@ -186,6 +190,6 @@
     return out;
   }
 
-  var api = { estimateTempo: estimateTempo, trackBeats: trackBeats, everyNth: everyNth, envelope: envelope, computeFlux: computeFlux, pickBeats: pickBeats, estimateBPM: estimateBPM, waveformPeaks: waveformPeaks, HOP: HOP, FFT_SIZE: FFT_SIZE };
+  var api = { barStart: barStart, estimateTempo: estimateTempo, trackBeats: trackBeats, everyNth: everyNth, envelope: envelope, computeFlux: computeFlux, pickBeats: pickBeats, estimateBPM: estimateBPM, waveformPeaks: waveformPeaks, HOP: HOP, FFT_SIZE: FFT_SIZE };
   if (typeof module !== "undefined" && module.exports) module.exports = api; else root.Detect = api;
 })(typeof window !== "undefined" ? window : this);
