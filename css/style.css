@@ -4,6 +4,7 @@ html,body{margin:0;background:var(--bg);color:var(--text);font:12px/1.4 "Segoe U
 body{padding:10px;min-width:240px}
 .top{display:flex;align-items:center;gap:6px;margin-bottom:6px}
 .top select{flex:1;min-width:0}
+.ver{font-size:10px;color:var(--dim);margin-right:8px;letter-spacing:.04em}
 .badge{font-size:10px;color:var(--dim);border:1px solid var(--line);border-radius:10px;padding:1px 8px;white-space:nowrap}
 .ic{width:30px;height:28px;padding:0;display:flex;align-items:center;justify-content:center}
 .ic svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
