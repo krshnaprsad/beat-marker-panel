@@ -2,7 +2,7 @@
 
 A free panel for **Adobe After Effects** and **Premiere Pro**. Pick a music file, the panel finds the beats and drops a marker on every one. Cut your video to the rhythm without tapping the `M` key along to the song.
 
-**Version 1.1.3.** The layout follows the workflow of dedicated beat-marker tools: an audio player with a big zoomable waveform on top, a transport row, a Beat selection box, a Beat info box, a marker-type dropdown and a delete button with a work-area option. No branding is copied.
+**Version 1.1.5.** The layout follows the workflow of dedicated beat-marker tools: an audio player with a big zoomable waveform on top, a transport row, a Beat selection box, a Beat info box, a marker-type dropdown and a delete button with a work-area option. No branding is copied.
 
 - **Auto-cut (headline feature):** select clips in the Project panel and press one button. The clips are placed back to back on the beats, one clip per gap between two selected beats. Premiere Pro first, After Effects too.
 - **Use selected clip:** reads the audio clip or layer you selected in the timeline, analyses only the part of the file that clip shows, and offsets the markers to where the clip sits.
@@ -11,7 +11,8 @@ A free panel for **Adobe After Effects** and **Premiere Pro**. Pick a music file
 - **Beats mode** (tempo plus a dynamic-programming beat tracker) and **Every hit mode** (with Sensitivity).
 - **Beat selection:** subdivide beats (OFF, 2, 3, 4), "select exactly N beats of every M beats", starting at beat S, picked first / evenly / randomly, **Find bar start**, and limit to a range (drag on the waveform, or use the work area).
 - **Edit beats:** tick "Edit beats", then click the waveform to add a beat, click a beat to remove it, drag a beat to move it.
-- **Beat info:** beats in the song, median tempo and beat length, how many beats are selected.
+- **Beat info:** beats in the song, tempo and beat length (always the song tempo, even in Every hit mode), median marker spacing, how many beats are selected.
+- **Too-many-markers guard:** if a marker add or auto-cut would be denser than about 3 per second, the panel warns first and asks for a second press.
 - Zoom and scroll strip, click to move the play position, play with volume, space bar plays and stops.
 - **MP3, WAV and most audio files load.** If the app's own audio engine can not read an MP3, the panel uses a built-in pure JavaScript MP3 decoder (no download, works offline). Decoding takes about 1 second per 10 seconds of music in that case.
 - MIT licensed, no account, no internet, nothing leaves your computer.
@@ -90,19 +91,22 @@ Everything is analysed inside the panel, in JavaScript. The host (After Effects 
 **Beat detection accuracy.** Measured on generated music with known beat positions: kick, snare, hats and bass, in 11 variations. A beat counts as found if it is within 70 ms of the true one.
 
 ```
-70 BPM straight            tempo   69.9  F 0.989
-90 BPM straight            tempo   90.2  F 0.992
-100 BPM swung 62%          tempo   99.7  F 0.992
+70 BPM straight            tempo   70.0  F 0.989
+90 BPM straight            tempo   90.0  F 0.992
+100 BPM swung 62%          tempo  100.0  F 0.992
 120 BPM straight           tempo  120.1  F 0.994
-128 BPM swung 66%          tempo  128.6  F 0.994
-140 BPM straight           tempo  139.8  F 0.995
-150 BPM, no hats           tempo  152.0  F 0.995
-174 BPM straight           tempo  172.9  F 0.991
+128 BPM swung 66%          tempo  128.0  F 1.000
+140 BPM straight           tempo  140.0  F 1.000
+150 BPM, no hats           tempo   75.0  F 0.671  (half tempo, 2x button fixes it)
+174 BPM straight           tempo  174.0  F 1.000
 110 BPM, loud noise        tempo  110.0  F 1.000
-120 BPM, tempo drifting 4% tempo  116.7  F 0.994
-95 BPM, only a kick on 1   tempo   95.3  F 1.000
-mean F 0.994, bar starts F 1.000
+120 BPM, tempo drifting 4% tempo  115.8  F 0.994
+95 BPM, only a kick on 1   tempo   95.0  F 1.000
 ```
+
+**Harder synthetic patterns** (loud 16th hi-hats, rolls, pad intro). Beats now snap to the audio attack, typically within a few milliseconds. The tempo is right on a trap pattern at 140 and a clap-on-2-and-4 pattern at 100. It is still wrong on a four-on-the-floor 124 with hats louder than the kick (reads 99) and on a boom-bap 90 with busy hats (reads 120). A beatless pad intro is left unmarked.
+
+**Real music.** Eight public-domain tracks, compared with the librosa beat tracker (which is a reference, not ground truth). The tempo agrees with librosa on 6 of 8, is double on one and half on one. After snapping, about 87% of beats sit on a detected onset, with a median offset under 20 ms. This is a small set and no replacement for listening to your own songs.
 
 These are clean, synthetic songs. Real music is harder: heavy compression, live drummers and long ambient parts will do worse. That is what the Tempo box and the half and double buttons are for.
 
