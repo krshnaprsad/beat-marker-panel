@@ -6,7 +6,7 @@
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-<header class="hd"><span class="logo" role="img" aria-label="Zero3 Creatives"></span><span class="ttl">Beat Markers</span><span class="ver" title="Panel version">v1.1.7</span><span id="host" class="badge">-</span></header>
+<header class="hd"><span class="logo" role="img" aria-label="Zero3 Creatives"></span><span class="ttl">Beat Markers</span><span class="ver" title="Panel version">v1.1.8</span><span id="host" class="badge">-</span></header>
 <div class="top">
   <select id="mtype" title="Where the markers go">
     <option value="seq">Sequence / Comp Markers</option>
@@ -57,6 +57,15 @@
     <input id="bpmIn" type="text" value="" spellcheck="false" placeholder="BPM">
     <button id="half" class="mini" title="Half speed">&frac12;&times;</button>
     <button id="dbl" class="mini" title="Double speed">2&times;</button>
+  </div>
+  <div class="row" id="shiftRow">
+    <label for="nudgeMs">Shift grid</label>
+    <button id="shM2" class="mini" title="Move every beat half a beat earlier">&minus;&frac12;</button>
+    <button id="shM4" class="mini" title="Move every beat a quarter beat earlier">&minus;&frac14;</button>
+    <button id="shP4" class="mini" title="Move every beat a quarter beat later">+&frac14;</button>
+    <button id="shP2" class="mini" title="Move every beat half a beat later">+&frac12;</button>
+    <input id="nudgeMs" type="text" value="0" spellcheck="false" style="flex:none;width:52px" title="Fine shift in milliseconds (negative = earlier)"><span class="dimtxt">ms</span>
+    <button id="shRst" class="mini" title="Back to the detected grid">Reset</button>
   </div>
   <div class="row" id="sensRow" style="display:none">
     <label for="sens">Sensitivity</label>
