@@ -16,10 +16,10 @@ const ref = [2.79, 3.29, 3.77, 4.26, 4.75, 5.25, 5.74, 6.23, 6.72, 7.21, 7.71, 8
 ref.forEach(r => assert.ok(bt.some(t => Math.abs(t - r) < 0.045), "no mark near " + r));
 const iv = bt.slice(1).map((t, i) => t - bt[i]), steady = iv.filter(v => v > 0.44 && v < 0.54).length / iv.length;
 assert.ok(steady > 0.9, "steady spacing share " + steady.toFixed(2));
-// Kicks mode: kick positions measured from the low band of the same file (15-29 s window)
-const gt = [15.08, 15.58, 15.82, 16.81, 17.30, 17.54, 19.52, 19.76, 20.75, 21.23, 21.48, 22.71, 22.95, 23.44, 23.70, 24.67, 25.17, 25.41, 26.64, 26.89, 27.38, 27.62, 28.61, 29.11];
-const kk = D.refineOnsets(D.pickKicks(fx, 0.5), D.lowpass(smp, dec.sampleRate, 150), dec.sampleRate, 0.03).filter(t => t > 14.9 && t < 29.3);
+// Kicks mode: all 50 kicks of this file, from its low-band flux (min gap 0.12 s, threshold 8x median), checked within 40 ms at the default slider
+const gt = [0.21, 3.75, 3.99, 4.25, 4.40, 4.64, 4.98, 5.47, 5.71, 6.95, 7.19, 7.69, 7.93, 8.92, 9.40, 9.65, 10.88, 11.12, 11.38, 11.62, 11.87, 12.85, 13.34, 13.58, 14.81, 15.06, 15.56, 15.80, 16.79, 17.28, 17.52, 19.49, 19.74, 20.72, 21.21, 21.46, 22.69, 22.93, 23.42, 23.67, 24.66, 25.15, 25.39, 26.62, 26.87, 27.35, 27.60, 28.58, 29.08, 29.33];
+const kk = D.refineOnsets(D.pickKicks(fx, 0.5), smp, dec.sampleRate, 0.02);
 const found = gt.filter(x => kk.some(y => Math.abs(y - x) < 0.04)).length, prec = kk.filter(y => gt.some(x => Math.abs(y - x) < 0.04)).length / kk.length;
-assert.ok(found >= 22, "kicks found " + found + "/24"); assert.ok(prec > 0.7, "kick precision " + prec.toFixed(2));
-console.log("kicks", found + "/24", "precision", prec.toFixed(2));
+assert.ok(found >= 42, "kicks found " + found + "/50"); assert.ok(prec > 0.8, "kick precision " + prec.toFixed(2));
+console.log("kicks", found + "/50", "precision", prec.toFixed(2), "marks", kk.length);
 console.log("fixture ok: tempo", tp.bpm, "beats", bt.length, "first", bt[0].toFixed(2), "steady spacing", steady.toFixed(2));
