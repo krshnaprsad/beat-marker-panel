@@ -30,7 +30,7 @@ console.log("robust ok: tempo", tp.bpm, "beats", bt.length, "intro beats", early
   for (let bar = 0; bar < 9; bar++) { const b0 = 1 + bar * 2; [0, 0.5, 0.74, 1.5].forEach(o => kicks.push(b0 + o)); }
   kicks.forEach(t => add(t, tt => 0.8 * Math.exp(-tt * 25) * Math.sin(2 * Math.PI * (50 * tt + 10 * (1 - Math.exp(-tt * 40))) * 3)));
   for (let t = 1; t < 19; t += 0.12) { const rr = rng(Math.round(t * 1000)); add(t, tt => 0.12 * (rr() - 0.5) * 2 * Math.exp(-tt * 110)); }
-  const f2 = D.computeFlux(x, SR), kk = D.refineOnsets(D.pickKicks(f2, 0.7), D.lowpass(x, SR, 150), SR, 0.03);
+  const f2 = D.computeFlux(x, SR), kk = D.refineOnsets(D.pickKicks(f2, 0.7), x, SR, 0.02);
   const kin = kicks.filter(t => t < 19), got = kin.filter(t => kk.some(y => Math.abs(y - t) < 0.03)).length;
   assert.ok(got >= 0.85 * kin.length, "kicks found " + got + "/" + kin.length);
   assert.ok(kk.length <= kin.length * 1.3, "extra marks: " + kk.length + " for " + kin.length + " kicks");
