@@ -101,12 +101,14 @@
     updateInfo(); draw();
   }
   function updateInfo() {
-    var bi = Select.beatInfo(edited);
+    var bi = Select.beatInfo(edited), tempo = audio ? (mode === "beats" && bpm ? bpm : audio.tempo.bpm) : 0;
     $("#iSong").textContent = edited.length ? edited.length + " beats" : (audio ? "no steady beat" : "-");
-    $("#iBpm").textContent = bi.bpm ? bi.bpm + " BPM (median)" : "-";
-    $("#iLen").textContent = bi.len ? bi.len + " s (median)" : "-";
+    $("#iBpm").textContent = tempo ? (Math.round(tempo * 10) / 10) + " BPM" + (mode === "hits" ? " (song, detected)" : "") : "-";
+    $("#iLen").textContent = tempo ? (Math.round(60 / tempo * 1000) / 1000) + " s" : "-";
+    $("#iSpace").textContent = bi.len ? bi.len + " s (median)" : "-";
     $("#iSel").textContent = audio ? finalBeats.length + " beats" : "-";
     $("#iRange").textContent = range ? fmt(range.a) + " - " + fmt(range.b) + ($("#rangeOn").checked ? "" : " (off)") : "whole song";
+    armed = null;
     if (audio && mode === "beats" && audio.tempo.confidence < 0.15) setWarn("Weak rhythm found. Check the tempo, or try Every hit.");
   }
   function setMode(m) {
@@ -245,9 +247,25 @@
   }
 
   // ---------- add / delete markers ----------
+  // Density guard: a marker or cut every fraction of a second is almost never wanted. Ask for a second press first.
+  var armed = null, armTimer = 0;
+  function dense(times) {
+    if (times.length < 20) return null;
+    var span = Math.max(1, times[times.length - 1] - times[0]), per = times.length / span;
+    return per > 3.2 ? per : null;
+  }
+  function guard(key, what, times) {
+    var per = dense(times);
+    if (!per || armed === key) { armed = null; return false; }
+    armed = key; clearTimeout(armTimer); armTimer = setTimeout(function () { armed = null; }, 10000);
+    setStatus("That is a lot: " + times.length + " " + what + ", about " + per.toFixed(1) + " per second.");
+    setWarn("Check the mode. Beats mode with \"select 1 beat of every 2 or 4\" gives a usable grid; Every hit marks every drum hit and note. Press the button again within 10 seconds to go ahead anyway.");
+    return true;
+  }
   function addMarkers() {
     if (!audio || !finalBeats.length) { setWarn("There are no beats selected."); return; }
     if (!needHost() || !clipOk()) return;
+    if (guard("add", "markers", finalBeats)) return;
     setWarn(""); addBtn.disabled = true;
     var times = finalBeats.map(function (t) { return off + t; }), i = 0, added_ = 0, skipped = 0, removed_ = 0, CH = 150, clr = ($("#rangeOn").checked && range) ? 0 : 1;
     (function next() {
@@ -355,6 +373,7 @@
   function autoCut() {
     if (!audio) { setWarn("Load music first."); return; }
     if (finalBeats.length < 2) { setWarn("Auto-cut needs at least 2 selected beats. Each clip fills the gap between two beats."); return; }
+    if (guard("cut", "cuts", finalBeats)) return;
     if (!needHost()) return; setWarn(""); setStatus("Reading the clips selected in the Project panel..."); cutBtn.disabled = true; autoBtn.disabled = true;
     function free() { cutBtn.disabled = false; autoBtn.disabled = false; }
     call("bmClips", [], function (r) {
@@ -392,6 +411,6 @@
   draw();
   window.onerror = function (m) { setStatus("Something went wrong."); setWarn(String(m)); };
   window.BeatPanel = { demo: function () { analyze(demoTrack(), "demo-120bpm.wav", { kind: "file" }, 0); }, setMode: setMode, setSens: function (v) { $("#sens").value = v; $("#sensVal").textContent = v; recompute(true); },
-    state: function () { return { beats: edited.length, selected: finalBeats.length, bpm: bpm }; },
+    state: function () { return { armed: armed, beats: edited.length, selected: finalBeats.length, bpm: bpm }; },
     set: function (id, v) { $(id).value = v; recompute(true); }, range: function (a, b) { range = { a: a, b: b }; $("#rangeOn").checked = true; recompute(true); } };
 })();
