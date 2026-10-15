@@ -1,0 +1,33 @@
+:root{--bg:#000;--panel:#141414;--line:#2f2f2f;--text:#f2f2f2;--dim:#9b9b9b;--accent:#ff3355;--beat:#ffd23f}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font:12px/1.4 "Segoe UI",system-ui,sans-serif}
+body{padding:10px}
+header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.title{font-size:14px;font-weight:600}
+.badge{font-size:10px;color:var(--dim);border:1px solid var(--line);border-radius:10px;padding:1px 8px}
+.file{display:block;position:relative;border:1px dashed var(--line);border-radius:6px;padding:10px;text-align:center;color:var(--dim);cursor:pointer;margin-bottom:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.file:hover,.file.over{border-color:var(--accent);color:var(--text)}
+.file input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%}
+.wave{background:#000;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.wave canvas{display:block;width:100%;height:75px}
+.readout{display:flex;justify-content:space-between;color:var(--dim);margin:4px 2px 8px}
+.row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.row label{width:92px;color:var(--dim);flex:none}
+.row input[type=range]{flex:1;accent-color:var(--accent)}
+.row select,.row input[type=text]{flex:1;font:inherit;color:var(--text);background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:5px;min-width:0}
+.val{color:var(--dim);min-width:26px;text-align:right}
+.buttons{display:flex;gap:8px;margin:10px 0 8px}
+button{font:inherit;color:var(--text);background:var(--panel);border:1px solid var(--line);border-radius:5px;padding:8px 10px;cursor:pointer}
+button:hover:not(:disabled){border-color:#777}
+button:disabled{opacity:.45;cursor:default}
+.buttons button{flex:1}
+.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+.primary:hover:not(:disabled){border-color:#fff}
+.mini{padding:5px 8px;font-size:11px}
+.wide{width:100%}
+.link{background:none;border:none;color:var(--dim);text-decoration:underline;padding:6px 0}
+.status{margin:8px 0 4px;color:var(--dim);min-height:17px}
+.warn{margin:0;color:#e0a040}
+.seg{display:flex;border:1px solid var(--line);border-radius:6px;overflow:hidden;margin:0 0 10px}
+.seg button{flex:1;border:0;border-radius:0;background:var(--panel);color:var(--dim);padding:7px}
+.seg button.on{background:#fff;color:#000;font-weight:600}
