@@ -9,6 +9,8 @@
   // ---------- state ----------
   var audio = null;        // { samples, sampleRate, buffer, duration, flux, tempo, peaks, name }
   var src = null;          // { kind: "file" | "clip", path, srcIn, srcOut }  clip = taken from a timeline clip
+  var gridShift = 0;       // grid shifted by this many beats (user control, -0.5 .. 0.5 steps)
+  var gridMs = 0;          // fine shift in milliseconds
   var off = 0;             // timeline time of audio t = 0
   var mode = "beats", bpm = 0, subK = 1;
   var added = [], removed = [];       // manual edits, in audio seconds
@@ -69,7 +71,7 @@
         stop();
         audio = { samples: smp, sampleRate: sr, buffer: buf, duration: fx.duration, flux: fx, tempo: Detect.estimateTempo(fx), peaks: Detect.waveformPeaks(smp, 16384), name: name };
         src = source || { kind: "file" }; off = newOff || 0;
-        added = []; removed = []; range = null; cursor = 0; view = { start: 0, span: audio.duration }; bpm = audio.tempo.bpm;
+        gridShift = 0; gridMs = 0; $("#nudgeMs").value = "0"; added = []; removed = []; range = null; cursor = 0; view = { start: 0, span: audio.duration }; bpm = audio.tempo.bpm;
         $("#zoom").value = 0; $("#scroll").value = 0; $("#rangeOn").checked = false;
         $("#fileLabel").textContent = name;
         setOffUI();
@@ -94,7 +96,13 @@
       $("#bpmIn").value = bpm ? String(Math.round(bpm * 10) / 10) : "";
       baseBeats = bpm ? Detect.trackBeats(audio.flux, bpm) : [];
     } else baseBeats = Detect.pickBeats(audio.flux, $("#sens").value / 100, 1);
+    if (mode === "beats" && bpm && gridShift) {
+      var Lb = 60 / bpm, sh = gridShift * Lb, shifted = [], k0;
+      for (k0 = 0; k0 < baseBeats.length; k0++) { var ts = baseBeats[k0] + sh; if (ts >= 0 && ts <= audio.duration) shifted.push(ts); }
+      baseBeats = shifted;
+    }
     baseBeats = Detect.refineOnsets(baseBeats, audio.samples, audio.sampleRate, 0.025);
+    if (mode === "beats" && gridMs) baseBeats = baseBeats.map(function (t) { return Math.max(0, t + gridMs / 1000); });
     edited = Select.applyEdits(Select.subdivide(baseBeats, subK), added, removed);
     m = Math.max(1, Math.round(num($("#selM"), 1))); n = Math.max(1, Math.min(m, Math.round(num($("#selN"), 1)))); s = Math.round(num($("#selS"), 1)) - 1;
     selected = Select.selectPattern(edited, n, m, s, $("#how").value);
@@ -115,7 +123,7 @@
   function setMode(m) {
     mode = m;
     for (var i = 0; i < modeBtns.length; i++) modeBtns[i].className = modeBtns[i].getAttribute("data-m") === m ? "on" : "";
-    $("#sensRow").style.display = m === "hits" ? "flex" : "none"; $("#tempoRow").style.display = m === "beats" ? "flex" : "none";
+    $("#sensRow").style.display = m === "hits" ? "flex" : "none"; $("#tempoRow").style.display = m === "beats" ? "flex" : "none"; $("#shiftRow").style.display = m === "beats" ? "flex" : "none";
     added = []; removed = []; recompute();
   }
 
@@ -350,6 +358,13 @@
   for (var mi = 0; mi < modeBtns.length; mi++) (function (b) { b.addEventListener("click", function () { setMode(b.getAttribute("data-m")); }); })(modeBtns[mi]);
   for (var si = 0; si < subBtns.length; si++) (function (b) { b.addEventListener("click", function () {
     subK = parseInt(b.getAttribute("data-k"), 10); for (var i = 0; i < subBtns.length; i++) subBtns[i].className = subBtns[i] === b ? "on" : ""; added = []; removed = []; recompute(true); }); })(subBtns[si]);
+  function setShift(frac) { if (!audio) return; gridShift = Math.round((gridShift + frac) * 1000) / 1000; gridShift -= Math.round(gridShift); if (Math.abs(gridShift) < 0.001) gridShift = 0; added = []; removed = []; recompute(true); setStatus("Grid shifted " + (gridShift >= 0 ? "+" : "") + Math.round(gridShift * 100) / 100 + " beat" + (gridMs ? ", " + gridMs + " ms" : "") + "."); }
+  $("#shM2").addEventListener("click", function () { setShift(-0.5); });
+  $("#shM4").addEventListener("click", function () { setShift(-0.25); });
+  $("#shP4").addEventListener("click", function () { setShift(0.25); });
+  $("#shP2").addEventListener("click", function () { setShift(0.5); });
+  $("#nudgeMs").addEventListener("change", function () { var v = num($("#nudgeMs"), 0); gridMs = Math.max(-500, Math.min(500, Math.round(v))); $("#nudgeMs").value = String(gridMs); added = []; removed = []; recompute(true); });
+  $("#shRst").addEventListener("click", function () { gridShift = 0; gridMs = 0; $("#nudgeMs").value = "0"; added = []; removed = []; recompute(true); setStatus("Grid back to the detected beats."); });
   function setBpm(v) { if (!audio || !(v >= 30 && v <= 300)) return; bpm = v; added = []; removed = []; recompute(true); }
   $("#bpmIn").addEventListener("change", function () { setBpm(num($("#bpmIn"), 0)); });
   $("#half").addEventListener("click", function () { setBpm(bpm / 2); });
@@ -412,6 +427,6 @@
   draw();
   window.onerror = function (m) { setStatus("Something went wrong."); setWarn(String(m)); };
   window.BeatPanel = { demo: function () { analyze(demoTrack(), "demo-120bpm.wav", { kind: "file" }, 0); }, setMode: setMode, setSens: function (v) { $("#sens").value = v; $("#sensVal").textContent = v; recompute(true); },
-    state: function () { return { armed: armed, beats: edited.length, selected: finalBeats.length, bpm: bpm }; },
+    state: function () { return { armed: armed, first: edited[0], shift: gridShift, ms: gridMs, beats: edited.length, selected: finalBeats.length, bpm: bpm }; },
     set: function (id, v) { $(id).value = v; recompute(true); }, range: function (a, b) { range = { a: a, b: b }; $("#rangeOn").checked = true; recompute(true); } };
 })();
