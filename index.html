@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Beat Markers</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header>
+  <span class="title">Beat Markers</span>
+  <span id="host" class="badge">-</span>
+</header>
+
+<label class="file" id="drop">
+  <input id="file" type="file" accept="audio/*,.wav,.mp3,.m4a,.aac,.ogg,.flac">
+  <span id="fileLabel">Choose a music file (mp3, wav...)</span>
+</label>
+
+<div class="wave"><canvas id="wave" width="640" height="150"></canvas></div>
+<div class="readout"><span id="count">No beats yet</span></div>
+
+<div class="seg" id="mode">
+  <button data-m="beats" class="on">Beats</button>
+  <button data-m="hits">Every hit</button>
+</div>
+<section class="row" id="tempoRow">
+  <label for="bpmIn">Tempo</label>
+  <input id="bpmIn" type="text" value="" spellcheck="false" placeholder="BPM">
+  <button id="half" class="mini" title="Half speed">&frac12;&times;</button>
+  <button id="dbl" class="mini" title="Double speed">2&times;</button>
+</section>
+<section class="row" id="sensRow" style="display:none">
+  <label for="sens">Sensitivity</label>
+  <input id="sens" type="range" min="0" max="100" value="50">
+  <span id="sensVal" class="val">50</span>
+</section>
+<section class="row">
+  <label for="nth">Mark</label>
+  <select id="nth">
+    <option value="1">every beat</option>
+    <option value="2">every 2nd beat</option>
+    <option value="4">every 4th beat (bars)</option>
+    <option value="8">every 8th beat</option>
+  </select>
+</section>
+<section class="row">
+  <label for="offset">Audio starts at</label>
+  <input id="offset" type="text" value="0" spellcheck="false">
+  <span class="val">sec</span>
+  <button id="playhead" class="mini" title="Use the current time indicator">Playhead</button>
+</section>
+
+<section class="buttons">
+  <button id="play" class="ghost" disabled>Play</button>
+  <button id="add" class="primary" disabled>Add markers</button>
+</section>
+<button id="clear" class="ghost wide">Clear beat markers</button>
+<button id="demo" class="link" style="display:none">Try with a demo beat</button>
+
+<p id="status" class="status">Pick a song to start.</p>
+<p id="warn" class="warn"></p>
+
+<script src="js/cep-bridge.js"></script>
+<script src="js/wav.js"></script>
+<script src="js/detect.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
