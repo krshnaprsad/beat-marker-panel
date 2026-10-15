@@ -31,20 +31,27 @@
     for (i = 0; i < n; i++) win[i] = 0.5 - 0.5 * Math.cos(2 * Math.PI * i / (n - 1));
     var maxBin = Math.min(n / 2, Math.floor(10000 / (sampleRate / n))), minBin = 2;
     var frames = Math.max(0, Math.floor((samples.length - n) / HOP) + 1), flux = new Float32Array(frames), low = new Float32Array(frames), mid = new Float32Array(frames), high = new Float32Array(frames), prev = new Float32Array(maxBin);
+    // mel-like bands (log-spaced, about 40 Hz to 10 kHz): each band's log energy rise, averaged over bands
+    var NB = 32, bandOf = new Int16Array(maxBin), bandCnt = new Float32Array(NB), bandE = new Float32Array(NB), bandPrev = new Float32Array(NB), mel = new Float32Array(frames), rms = new Float32Array(frames), binHz = sampleRate / n, mlo = 2595 * Math.log(1 + 40 / 700) / Math.LN10, mhi = 2595 * Math.log(1 + 10000 / 700) / Math.LN10;
+    for (i = minBin; i < maxBin; i++) { var mm = 2595 * Math.log(1 + (i * binHz) / 700) / Math.LN10, bb = Math.floor((mm - mlo) / (mhi - mlo) * NB); bandOf[i] = Math.max(0, Math.min(NB - 1, bb)); bandCnt[bandOf[i]]++; }
     var midBin = Math.max(lowBinFor(sampleRate, n) + 1, Math.floor(2500 / (sampleRate / n)));
     var lowBin = lowBinFor(sampleRate, n);
     for (f = 0; f < frames; f++) {
-      var off = f * HOP;
-      for (i = 0; i < n; i++) { re[i] = samples[off + i] * win[i]; im[i] = 0; }
+      var off = f * HOP, e2 = 0;
+      for (i = 0; i < n; i++) { re[i] = samples[off + i] * win[i]; im[i] = 0; e2 += samples[off + i] * samples[off + i]; }
+      rms[f] = Math.sqrt(e2 / n);
       fft(re, im);
-      var sum = 0, lsum = 0, msum = 0, hsum = 0;
+      var sum = 0, lsum = 0, msum = 0, hsum = 0; bandE.fill(0);
       for (i = minBin; i < maxBin; i++) {
-        var mag = Math.log(1 + 40 * Math.sqrt(re[i] * re[i] + im[i] * im[i]) / n * 2);
+        var pw2 = re[i] * re[i] + im[i] * im[i]; bandE[bandOf[i]] += pw2;
+        var mag = Math.log(1 + 40 * Math.sqrt(pw2) / n * 2);
         var d = mag - prev[i]; if (d > 0) { sum += d; if (i < lowBin) lsum += d; else if (i < midBin) msum += d; else hsum += d; } prev[i] = mag;
       }
+      var msumv = 0, bq; for (bq = 0; bq < NB; bq++) { var bl = Math.log(1 + 40 * Math.sqrt(bandE[bq]) / n * 2), dd = bl - bandPrev[bq]; if (dd > 0) msumv += dd; bandPrev[bq] = bl; }
+      mel[f] = f === 0 ? 0 : msumv / NB;
       flux[f] = f === 0 ? 0 : sum; low[f] = f === 0 ? 0 : lsum; mid[f] = f === 0 ? 0 : msum / Math.sqrt(midBin - lowBin); high[f] = f === 0 ? 0 : hsum / Math.sqrt(Math.max(1, maxBin - midBin));
     }
-    return { flux: flux, low: low, mid: mid, high: high, hop: HOP / sampleRate, duration: samples.length / sampleRate };
+    return { flux: flux, rms: rms, mel: mel, low: low, mid: mid, high: high, hop: HOP / sampleRate, duration: samples.length / sampleRate };
   }
 
   // sensitivity 0..1 (low = only strong beats, high = dense). everyNth: keep every Nth beat.
@@ -112,7 +119,18 @@
   function smooth3(a) { var o = new Float32Array(a.length), i; for (i = 0; i < a.length; i++) o[i] = 0.25 * (a[i > 0 ? i - 1 : 0]) + 0.5 * a[i] + 0.25 * (a[i < a.length - 1 ? i + 1 : i]); return o; }
   function percentile(arr, p) { var c = Array.prototype.slice.call(arr).sort(function (a, b) { return a - b; }); return c.length ? c[Math.min(c.length - 1, Math.floor(p * c.length))] : 0; }
   // Beat strength in raw (not normalised) flux: tells real hits from a pad or silence, which normalisation would blow up.
-  function strongEnough(fx) { var thr = 0.18 * percentile(fx.flux, 0.9); return function (frame) { var k, v = 0; for (k = Math.max(0, frame - 2); k <= Math.min(fx.flux.length - 1, frame + 2); k++) if (fx.flux[k] > v) v = fx.flux[k]; return v >= thr; }; }
+  function strongEnough(fx) {
+    if (fx._se) return fx._se;
+    // local activity = mean raw flux over ~1.2 s; a section well below the song's usual level is a pad, a break or silence
+    var f = fx.flux, n = f.length, w = Math.max(2, Math.round(0.6 / fx.hop)), pre = new Float64Array(n + 1), i, loc = new Float64Array(n);
+    for (i = 0; i < n; i++) pre[i + 1] = pre[i] + f[i];
+    for (i = 0; i < n; i++) { var lo = Math.max(0, i - w), hi = Math.min(n, i + w + 1); loc[i] = (pre[hi] - pre[lo]) / (hi - lo); }
+    var thr = 0.5 * percentile(loc, 0.6), r = fx.rms, lr = new Float64Array(n), rp = new Float64Array(n + 1);
+    if (r) { for (i = 0; i < n; i++) rp[i + 1] = rp[i] + r[i]; for (i = 0; i < n; i++) { var a2 = Math.max(0, i - w), b2 = Math.min(n, i + w + 1); lr[i] = (rp[b2] - rp[a2]) / (b2 - a2); } }
+    var rthr = r ? 0.4 * percentile(lr, 0.6) : 0;
+    fx._se = function (frame) { var q = Math.max(0, Math.min(n - 1, frame)); return loc[q] >= thr && (!r || lr[q] >= rthr); };
+    return fx._se;
+  }
 
   // Comb score: how well do onsets sit on a grid with period L (frames)? Best phase wins. Returns { score, phase }.
   function comb(o, m, L, mean) {
@@ -161,7 +179,9 @@
   // Dynamic-programming beat tracker (Ellis 2007): beats should land on onsets and stay about one period apart.
   // Returns beat times in seconds.
   function trackBeats(fx, bpm, tightness) {
-    var o = (beatEnv(fx), fx._pe || beatEnv(fx)), n = o.length, hop = fx.hop, T = 60 / bpm / hop, i, tau, lam = tightness || 90, real = strongEnough(fx);
+    var o0 = beatEnv(fx), n = o0.length, hop = fx.hop, T = 60 / bpm / hop, i, tau, lam = tightness || 400, real = strongEnough(fx);
+    // only the parts that really have beats take part in the search, so a quiet intro cannot set the grid phase for the whole song
+    var o = new Float32Array(n); for (i = 0; i < n; i++) o[i] = real(i) ? o0[i] : 0;
     if (!(T > 2) || n < T * 3) return [];
     var C = new Float64Array(n), prev = new Int32Array(n), lo = Math.max(1, Math.round(T / 2)), hi = Math.round(T * 2);
     for (i = 0; i < n; i++) {
@@ -179,15 +199,19 @@
     idx.reverse();
     // extend backwards to the start of the audio with the same period, so the grid covers the intro too
     var out = [], first = idx[0];
-    for (i = first - T; i >= 0; i -= T) { var ci = Math.round(i), ev = 0, kk; for (kk = Math.max(0, ci - 2); kk <= Math.min(n - 1, ci + 2); kk++) ev = Math.max(ev, o[kk]); if (!real(ci)) break; out.unshift(i); }
+    for (i = first - T; i >= 0; i -= T) { var ci = Math.round(i), ev = 0, kk; for (kk = Math.max(0, ci - 2); kk <= Math.min(n - 1, ci + 2); kk++) ev = Math.max(ev, o[kk]); if (!real(ci) || ev < 1.5) break; out.unshift(i); }
     for (i = 0; i < idx.length; i++) out.push(idx[i]);
     // snap each beat to the strongest envelope frame within +-2 frames, then convert to seconds
-    var times = [], shift = (FFT_SIZE / 4) * (hop / HOP);
+    var times = [], strength = [], shift = (FFT_SIZE / 4) * (hop / HOP);
     for (i = 0; i < out.length; i++) {
       var c = Math.round(out[i]), bi = c, bv = -1, k;
       for (k = Math.max(0, c - 2); k <= Math.min(n - 1, c + 2); k++) if (o[k] > bv) { bv = o[k]; bi = k; }
-      if (real(bi)) times.push(bi * hop + shift);   // no beats where there is only a pad or silence
+      if (real(bi)) { times.push(bi * hop + shift); strength.push(bv); }   // no beats where there is only a pad or silence
     }
+    // the grid must not run past the real start or end of the music: trim leading and trailing beats with no onset under them
+    var lim = 0.4 * percentile(strength, 0.5);
+    while (times.length && strength[0] < lim) { times.shift(); strength.shift(); }
+    while (times.length && strength[strength.length - 1] < lim) { times.pop(); strength.pop(); }
     return times;
   }
 
