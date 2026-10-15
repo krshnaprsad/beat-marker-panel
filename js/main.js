@@ -94,7 +94,7 @@
       $("#bpmIn").value = bpm ? String(Math.round(bpm * 10) / 10) : "";
       baseBeats = bpm ? Detect.trackBeats(audio.flux, bpm) : [];
     } else baseBeats = Detect.pickBeats(audio.flux, $("#sens").value / 100, 1);
-    baseBeats = Detect.refineOnsets(baseBeats, audio.samples, audio.sampleRate, 0.045);
+    baseBeats = Detect.refineOnsets(baseBeats, audio.samples, audio.sampleRate, 0.025);
     edited = Select.applyEdits(Select.subdivide(baseBeats, subK), added, removed);
     m = Math.max(1, Math.round(num($("#selM"), 1))); n = Math.max(1, Math.min(m, Math.round(num($("#selN"), 1)))); s = Math.round(num($("#selS"), 1)) - 1;
     selected = Select.selectPattern(edited, n, m, s, $("#how").value);
