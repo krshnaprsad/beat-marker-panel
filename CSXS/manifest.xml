@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ExtensionManifest Version="7.0" ExtensionBundleId="com.krshnaprsad.beatmarkerpanel" ExtensionBundleVersion="1.0.0" ExtensionBundleName="Beat Marker Panel"
+<ExtensionManifest Version="7.0" ExtensionBundleId="com.krshnaprsad.beatmarkerpanel" ExtensionBundleVersion="1.1.0" ExtensionBundleName="Beat Marker Panel"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <ExtensionList>
-    <Extension Id="com.krshnaprsad.beatmarkerpanel.panel" Version="1.0.0"/>
+    <Extension Id="com.krshnaprsad.beatmarkerpanel.panel" Version="1.1.0"/>
   </ExtensionList>
   <ExecutionEnvironment>
     <HostList>
@@ -33,9 +33,9 @@
           <Type>Panel</Type>
           <Menu>Beat Markers</Menu>
           <Geometry>
-            <Size><Width>340</Width><Height>600</Height></Size>
-            <MinSize><Width>260</Width><Height>520</Height></MinSize>
-            <MaxSize><Width>800</Width><Height>1000</Height></MaxSize>
+            <Size><Width>440</Width><Height>780</Height></Size>
+            <MinSize><Width>280</Width><Height>560</Height></MinSize>
+            <MaxSize><Width>1400</Width><Height>1400</Height></MaxSize>
           </Geometry>
         </UI>
       </DispatchInfo>
