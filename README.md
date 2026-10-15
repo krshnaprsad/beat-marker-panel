@@ -2,7 +2,7 @@
 
 A free panel for **Adobe After Effects** and **Premiere Pro**. Pick a music file, the panel finds the beats and drops a marker on every one. Cut your video to the rhythm without tapping the `M` key along to the song.
 
-**Version 1.1.** The layout follows the workflow of dedicated beat-marker tools: an audio player with a big zoomable waveform on top, a transport row, a Beat selection box, a Beat info box, a marker-type dropdown and a delete button with a work-area option. No branding is copied.
+**Version 1.1.1.** The layout follows the workflow of dedicated beat-marker tools: an audio player with a big zoomable waveform on top, a transport row, a Beat selection box, a Beat info box, a marker-type dropdown and a delete button with a work-area option. No branding is copied.
 
 - **Auto-cut (headline feature):** select clips in the Project panel and press one button. The clips are placed back to back on the beats, one clip per gap between two selected beats. Premiere Pro first, After Effects too.
 - **Use selected clip:** reads the audio clip or layer you selected in the timeline, analyses only the part of the file that clip shows, and offsets the markers to where the clip sits.
@@ -13,6 +13,7 @@ A free panel for **Adobe After Effects** and **Premiere Pro**. Pick a music file
 - **Edit beats:** tick "Edit beats", then click the waveform to add a beat, click a beat to remove it, drag a beat to move it.
 - **Beat info:** beats in the song, median tempo and beat length, how many beats are selected.
 - Zoom and scroll strip, click to move the play position, play with volume, space bar plays and stops.
+- **MP3, WAV and most audio files load.** If the app's own audio engine can not read an MP3, the panel uses a built-in pure JavaScript MP3 decoder (no download, works offline). Decoding takes about 1 second per 10 seconds of music in that case.
 - MIT licensed, no account, no internet, nothing leaves your computer.
 
 ![The panel](docs/panel.svg)
@@ -110,7 +111,7 @@ mean F 0.994, bar starts F 1.000
 - The marker code in `jsx/host.jsx` runs against mock After Effects and Premiere objects: `node tests/host.test.js`. It also parses as old ES3 ExtendScript.
 - The panel runs in desktop Chrome (screenshot above), and decoding a generated WAV and MP3 works there.
 
-Not verified, because I could not run Adobe apps: the Premiere and After Effects calls for selection, clip and layer markers, the work area, the Project panel selection, and auto-cut placement (the host script is checked against mock objects only, `node tests/host.test.js`). These parts check every step and stop with a plain message, but expect that some of them need a fix after your first test. Also not verified: decoding inside Adobe's own embedded browser. WAV always works. MP3 and other compressed formats depend on the codecs in your version of the app. If you see "could not be decoded", export the song as WAV (for example with Audacity, or Adobe Media Encoder) and use that. Also not verified: the exact look of the markers in the apps.
+Not verified, because I could not run Adobe apps: the Premiere and After Effects calls for selection, clip and layer markers, the work area, the Project panel selection, and auto-cut placement (the host script is checked against mock objects only, `node tests/host.test.js`). These parts check every step and stop with a plain message, but expect that some of them need a fix after your first test. Also not verified: decoding inside Adobe's own embedded browser. WAV and MP3 always work (MP3 falls back to the built-in decoder, tested against ffmpeg's decode with a correlation of 1.000 on 32, 44.1 and 48 kHz, mono and stereo, CBR and VBR). AAC/M4A and other compressed formats depend on the codecs in your version of the app; if you see "could not be decoded", use an MP3 or WAV. Also not verified: the exact look of the markers in the apps.
 
 If something fails, the panel shows the error text. Open an issue with that text and your app version.
 
@@ -119,7 +120,7 @@ If something fails, the panel shows the error text. Open an issue with that text
 - Coloured markers, separate marker types for beats, bars and hits.
 - Tempo maps for songs that change tempo, and a "nudge all markers" control.
 - Auto-cut with speed ramps, transitions and audio-driven effects.
-- Built-in MP3 decoder for apps that can not decode MP3.
+- AAC/M4A decoder fallback.
 
 ## Files
 
@@ -127,6 +128,8 @@ If something fails, the panel shows the error text. Open an issue with that text
 index.html, css/        the panel
 js/detect.js            tempo, beat tracking and hit detection (also used by the tests)
 js/wav.js               WAV decoder fallback
+js/mp3.js               MP3 decoder fallback (wraps the bundled js-mp3)
+js/js-mp3.vendor.js     js-mp3 decoder, MIT (see THIRD-PARTY-LICENSES.md)
 js/select.js            subdivide, N of M, manual edits, range
 js/autocut.js           plans which clip fills which gap
 js/main.js              panel logic
@@ -138,4 +141,4 @@ install/                installers for Windows and Mac
 
 ## License
 
-MIT
+MIT. The bundled MP3 decoder is also MIT (a port of go-mp3, Apache-2.0, from the public-domain PDMP3). See [THIRD-PARTY-LICENSES.md](THIRD-PARTY-LICENSES.md).
