@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ExtensionManifest Version="7.0" ExtensionBundleId="com.krshnaprsad.beatmarkerpanel" ExtensionBundleVersion="1.1.1" ExtensionBundleName="Beat Marker Panel"
+<ExtensionManifest Version="7.0" ExtensionBundleId="com.krshnaprsad.beatmarkerpanel" ExtensionBundleVersion="1.1.2" ExtensionBundleName="Beat Marker Panel"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <ExtensionList>
-    <Extension Id="com.krshnaprsad.beatmarkerpanel.panel" Version="1.1.1"/>
+    <Extension Id="com.krshnaprsad.beatmarkerpanel.panel" Version="1.1.2"/>
   </ExtensionList>
   <ExecutionEnvironment>
     <HostList>
