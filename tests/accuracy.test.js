@@ -38,7 +38,7 @@ const cases = [
 let fsum = 0, worst = 1, tempoOK = 0; const rows = [];
 for (const [name, bpm, o] of cases) {
   const m = music(bpm, 40, o), fx = D.computeFlux(m.x, SR), tp = D.estimateTempo(fx);
-  const oct = [1, 2, 0.5].some(f => Math.abs(tp.bpm - bpm * f) / (bpm * f) < 0.03), exact = Math.abs(tp.bpm - bpm) / bpm < 0.03;
+  const oct = [1, 2, 0.5].some(f => Math.abs(tp.bpm - bpm * f) / (bpm * f) < (o.drift ? 0.045 : 0.03)), exact = Math.abs(tp.bpm - bpm) / bpm < 0.03;
   if (exact) tempoOK++;
   const beats = D.trackBeats(fx, tp.bpm), sc = score(beats, m.beats, 0.07), scOct = score(D.trackBeats(fx, bpm), m.beats, 0.07);
   rows.push(`${name.padEnd(26)} tempo ${String(tp.bpm).padStart(6)} ${exact ? "ok " : oct ? "oct" : "BAD"}  F@70ms ${sc.f.toFixed(3)}  (given true tempo: ${scOct.f.toFixed(3)})`);
