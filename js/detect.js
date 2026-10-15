@@ -220,7 +220,7 @@
   function pickKicks(fx, sensitivity) {
     var f = fx.low, n = f.length, hop = fx.hop, i, k;
     if (!f || n < 8) return [];
-    var s = Math.max(0, Math.min(1, sensitivity)), T = 2.2 - 1.8 * s, wd = Math.max(4, Math.round(1.5 / hop)), minGap = 0.15 / hop;
+    var s = Math.max(0, Math.min(1, sensitivity)), T = 2.2 - 1.8 * s, wd = Math.max(4, Math.round(1.5 / hop)), minGap = 0.11 / hop;
     var cs = new Float64Array(n + 1), cs2 = new Float64Array(n + 1), z = new Float32Array(n);
     for (i = 0; i < n; i++) { cs[i + 1] = cs[i] + f[i]; cs2[i + 1] = cs2[i] + f[i] * f[i]; }
     for (i = 0; i < n; i++) {
