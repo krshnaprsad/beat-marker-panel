@@ -95,13 +95,15 @@
       if (!keepTempo) bpm = audio.tempo.bpm;
       $("#bpmIn").value = bpm ? String(Math.round(bpm * 10) / 10) : "";
       baseBeats = bpm ? Detect.trackBeats(audio.flux, bpm) : [];
-    } else baseBeats = Detect.pickBeats(audio.flux, $("#sens").value / 100, 1);
+    } else if (mode === "kicks") baseBeats = Detect.pickKicks(audio.flux, $("#sens").value / 100);
+    else baseBeats = Detect.pickBeats(audio.flux, $("#sens").value / 100, 1);
     if (mode === "beats" && bpm && gridShift) {
       var Lb = 60 / bpm, sh = gridShift * Lb, shifted = [], k0;
       for (k0 = 0; k0 < baseBeats.length; k0++) { var ts = baseBeats[k0] + sh; if (ts >= 0 && ts <= audio.duration) shifted.push(ts); }
       baseBeats = shifted;
     }
-    baseBeats = Detect.refineOnsets(baseBeats, audio.samples, audio.sampleRate, 0.025);
+    if (mode === "kicks") { if (!audio.low) audio.low = Detect.lowpass(audio.samples, audio.sampleRate, 150); baseBeats = Detect.refineOnsets(baseBeats, audio.low, audio.sampleRate, 0.03); }
+    else baseBeats = Detect.refineOnsets(baseBeats, audio.samples, audio.sampleRate, 0.025);
     if (mode === "beats" && gridMs) baseBeats = baseBeats.map(function (t) { return Math.max(0, t + gridMs / 1000); });
     edited = Select.applyEdits(Select.subdivide(baseBeats, subK), added, removed);
     m = Math.max(1, Math.round(num($("#selM"), 1))); n = Math.max(1, Math.min(m, Math.round(num($("#selN"), 1)))); s = Math.round(num($("#selS"), 1)) - 1;
@@ -112,7 +114,7 @@
   function updateInfo() {
     var bi = Select.beatInfo(edited), tempo = audio ? (mode === "beats" && bpm ? bpm : audio.tempo.bpm) : 0;
     $("#iSong").textContent = edited.length ? edited.length + " beats" : (audio ? "no steady beat" : "-");
-    $("#iBpm").textContent = tempo ? (Math.round(tempo * 10) / 10) + " BPM" + (mode === "hits" ? " (song, detected)" : "") : "-";
+    $("#iBpm").textContent = tempo ? (Math.round(tempo * 10) / 10) + " BPM" + (mode !== "beats" ? " (song, detected)" : "") : "-";
     $("#iLen").textContent = tempo ? (Math.round(60 / tempo * 1000) / 1000) + " s" : "-";
     $("#iSpace").textContent = bi.len ? bi.len + " s (median)" : "-";
     $("#iSel").textContent = audio ? finalBeats.length + " beats" : "-";
@@ -123,7 +125,7 @@
   function setMode(m) {
     mode = m;
     for (var i = 0; i < modeBtns.length; i++) modeBtns[i].className = modeBtns[i].getAttribute("data-m") === m ? "on" : "";
-    $("#sensRow").style.display = m === "hits" ? "flex" : "none"; $("#tempoRow").style.display = m === "beats" ? "flex" : "none"; $("#shiftRow").style.display = m === "beats" ? "flex" : "none";
+    $("#sensRow").style.display = m !== "beats" ? "flex" : "none"; $("#tempoRow").style.display = m === "beats" ? "flex" : "none"; $("#shiftRow").style.display = m === "beats" ? "flex" : "none";
     added = []; removed = []; recompute();
   }
 
