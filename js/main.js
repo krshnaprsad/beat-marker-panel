@@ -102,7 +102,7 @@
       for (k0 = 0; k0 < baseBeats.length; k0++) { var ts = baseBeats[k0] + sh; if (ts >= 0 && ts <= audio.duration) shifted.push(ts); }
       baseBeats = shifted;
     }
-    if (mode === "kicks") { if (!audio.low) audio.low = Detect.lowpass(audio.samples, audio.sampleRate, 150); baseBeats = Detect.refineOnsets(baseBeats, audio.low, audio.sampleRate, 0.03); }
+    if (mode === "kicks") baseBeats = Detect.refineOnsets(baseBeats, audio.samples, audio.sampleRate, 0.02);   // a kick starts the whole burst, so snap on the full signal, not a low-passed copy
     else baseBeats = Detect.refineOnsets(baseBeats, audio.samples, audio.sampleRate, 0.025);
     if (mode === "beats" && gridMs) baseBeats = baseBeats.map(function (t) { return Math.max(0, t + gridMs / 1000); });
     edited = Select.applyEdits(Select.subdivide(baseBeats, subK), added, removed);
