@@ -17,7 +17,7 @@ A free panel for **Adobe After Effects** and **Premiere Pro**. Pick a music file
 - **Too-many-markers guard:** if a marker add or auto-cut would be denser than about 3 per second, the panel warns first and asks for a second press.
 - Zoom and scroll strip, click to move the play position, play with volume, space bar plays and stops.
 - **MP3, WAV and most audio files load.** If the app's own audio engine can not read an MP3, the panel uses a built-in pure JavaScript MP3 decoder (no download, works offline). Decoding takes about 1 second per 10 seconds of music in that case.
-- MIT licensed, no account, no internet, nothing leaves your computer.
+- Free to use, no account, no internet, nothing leaves your computer.
 
 ![The panel](docs/panel.svg)
 
@@ -148,6 +148,8 @@ tests/                  automated tests (see CONTRIBUTING.md)
 install/                installers for Windows and Mac
 ```
 
-## License
+## Licence
 
-MIT. The Zero3 Creatives logo in the panel header belongs to its owner and is not covered by the MIT license. The bundled MP3 decoder is also MIT (a port of go-mp3, Apache-2.0, from the public-domain PDMP3). See [THIRD-PARTY-LICENSES.md](THIRD-PARTY-LICENSES.md).
+I made this and it is free to use, including for paid work. What it is not free to do is be copied: please don't republish, redistribute or sell the code, or build your own version from it. The full terms are in [LICENSE](LICENSE). Versions published before 19 October 2026 were MIT and stay that way. The Zero3 name and logo are not part of the licence.
+
+The bundled MP3 decoder (js/js-mp3.vendor.js) is not mine and keeps its own MIT licence, see [THIRD-PARTY-LICENSES.md](THIRD-PARTY-LICENSES.md).
