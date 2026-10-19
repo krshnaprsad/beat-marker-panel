@@ -1,21 +1,33 @@
-MIT License
+Zero3 Free Use Licence
 
-Copyright (c) 2026 Krishna Prasad
+Copyright (c) 2026 Krishna Prasad. All rights reserved.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+Beat Marker Panel is free to use, but it is not free to copy.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+WHAT YOU CAN DO
+- Use Beat Marker Panel for free, for personal or commercial work. This includes the hosted
+  version and downloading it to run unchanged on your own computer.
+- Read the source code.
+- Fork the repository on GitHub only as far as GitHub's Terms of Service allow,
+  and only to suggest changes back to me.
+
+WHAT YOU CANNOT DO without my written permission
+- Copy, republish, host or redistribute the code or any part of it, original or
+  changed, on any site, store or package registry.
+- Sell it, rent it, or include it in a product or service you offer to others.
+- Build your own version or a derivative of it and share that.
+- Remove or change the copyright notice or this licence.
+
+OTHER NOTES
+- Releases published before 19 October 2026 were under the MIT licence. Anyone
+  who received those versions keeps the rights the MIT licence gave them for
+  those versions. This licence applies to everything published from that date.
+- The Zero3 name and logo are mine and are not covered by this licence.
+- Third-party code included in this repository is not mine and keeps its own
+  licence.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHOR BE
+LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY ARISING FROM THE USE OF THE
 SOFTWARE.
