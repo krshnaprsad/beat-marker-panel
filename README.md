@@ -23,6 +23,10 @@ A free panel for **Adobe After Effects** and **Premiere Pro**. Pick a music file
 
 The panel is responsive: wider than about 560 px it puts Beat info and Auto-cut next to Beat selection.
 
+## Why I built Beat Marker Panel
+
+Marking beats by hand in Premiere Pro and After Effects takes a huge amount of time. I thought an automation for it would be really useful. Instead of looking for someone else's tool, I asked myself why I could not make my own, so I did. That is how Beat Marker Panel happened.
+
 ## Install (no coding needed)
 
 You need Premiere Pro 2020 or newer and/or After Effects 2020 or newer. The panel is a CEP extension.
